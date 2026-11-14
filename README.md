@@ -3,7 +3,7 @@
 
 A game where students design and run a Moon or Mars outpost. You split a rocket's launch weight between solar panels, batteries, radiation shielding, a greenhouse and spare parts, then keep three astronauts alive for 14 days. Every choice costs something, and the debrief shows why a mission failed or succeeded.
 
-**Live demo:** https://YOUR-USERNAME.github.io/YOUR-REPO/
+**Live demo:** https://guileless-tanuki-a38d45.netlify.app
 
 ## Try it
 1. Tap **Outpost Command** and pick **Moon base**.
