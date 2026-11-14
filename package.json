@@ -1,0 +1,49 @@
+{
+  "name": "momentum-outpost-command",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@expo/metro-runtime": "~58.0.17",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@supabase/supabase-js": "^2.119.0",
+    "expo": "~58.0.23",
+    "expo-audio": "~58.0.11",
+    "expo-haptics": "~58.0.7",
+    "expo-keep-awake": "~58.0.3",
+    "expo-linear-gradient": "~58.0.3",
+    "expo-status-bar": "~58.0.4",
+    "expo-video": "~58.0.13",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-safe-area-context": "~5.11.1",
+    "react-native-svg": "15.16.0",
+    "react-native-url-polyfill": "^4.0.0",
+    "react-native-web": "~0.21.4",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@testing-library/react-native": "^14.1.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.6.6",
+    "@types/react": "~19.3.0",
+    "jest": "^30.5.2",
+    "jest-expo": "^58.0.14",
+    "react-test-renderer": "^19.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "web:build": "expo export --platform web --output-dir dist",
+    "typecheck": "tsc --noEmit",
+    "test:logic": "tsx tests/outpost.test.ts && tsx tests/new-features.test.ts && tsx tests/ai-validation.test.ts && tsx tests/features.test.ts && tsx tests/logic.test.ts",
+    "test": "jest"
+  },
+  "private": true,
+  "description": "Junior Astronaut Mission Trainer: design and run a Moon or Mars outpost. NASA Space Apps Challenge 2026.",
+  "license": "MIT"
+}
