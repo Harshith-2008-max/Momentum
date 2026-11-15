@@ -17,10 +17,12 @@ export function LearnCheck({ form, onDone, onCancel }: { form: "pre" | "post"; o
   return (
     <>
       <Mu>LEARNING CHECK · {form === "pre" ? "BEFORE" : "AFTER"} · QUESTION {i + 1} OF {PAIRS.length}</Mu>
+      <Text style={{ color: C.v, fontSize: 18, letterSpacing: 4 }}>{"●".repeat(i)}{"◉"}{"○".repeat(PAIRS.length - i - 1)}</Text>
       <Card><Text style={{ color: C.fg, fontSize: 18 }}>{q.q}</Text></Card>
       {q.opts.map((o, k) => (
-        <Btn key={k} t={o + (pick !== null && k === q.correct ? "  ✅" : pick === k ? "  ❌" : "")} style={{ marginVertical: 4 }} onPress={() => { if (pick === null) { setPick(k); if (k === q.correct) setScore(score + 1); } }} />
+        <Btn key={k} testID="learn-option" t={o + (pick !== null && k === q.correct ? "  ✅" : pick === k ? "  ❌" : "")} style={{ marginVertical: 4 }} onPress={() => { if (pick === null) { setPick(k); if (k === q.correct) setScore(score + 1); } }} />
       ))}
+      {pick !== null && <Card><Text style={{ color: C.fg }}>{pick === q.correct ? "✅ Correct! " : "💡 Good try. "}{PAIRS[i].why}</Text></Card>}
       {pick !== null && <Btn pri t={i + 1 < PAIRS.length ? "Next question" : "See my score"} style={{ marginTop: 10 }} onPress={() => { setPick(null); setI(i + 1); }} />}
       <Btn t="Skip for now" onPress={onCancel} style={{ marginTop: 8 }} />
     </>

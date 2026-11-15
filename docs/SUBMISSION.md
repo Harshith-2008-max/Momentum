@@ -11,7 +11,7 @@ Most outpost games are a sandbox with made-up events. This one is a flight recor
 3. **Measured learning:** a before-and-after check with different questions on the same ideas, so the gain is real.
 4. **"What if?" rewind:** go back to any decision day and choose differently. It teaches cause and effect, which a score cannot.
 5. **Ready for a classroom:** class codes, crew mode for groups of three, and a teacher dashboard with no student accounts.
-6. **Built for its first users:** English, Tamil and Hindi, with an ISRO story alongside NASA's.
+6. **Built for its first users:** 18 languages with a searchable language screen, with an ISRO story alongside NASA's.
 From the few public entries I could find, the others were outpost simulators; I did not see real-mission replays or measured learning. Check this yourself before claiming it.
 
 ## One-line pitch
@@ -36,7 +36,7 @@ Outpost Command is a mobile and web game for ages 9 to 16. Players keep three as
 | Keep students coming back | Daily challenge, star ratings, badges, Mars unlock, shareable result grid |
 | Work in a classroom | Teacher mode with class codes and a results dashboard, crew mode for groups, before-and-after learning check |
 | Use real, current NASA data | Live NASA DONKI solar flare drives the storm event; NASA videos and picture of the day |
-| Reach local students | English, Tamil and Hindi on the Outpost screens; Chandrayaan-3 (ISRO) fact |
+| Reach local students | 18 languages on the Outpost screens, with a search bar; Chandrayaan-3 (ISRO) fact |
 | Make the stakes real | Mission History: Opportunity 2018, Chandrayaan-3 night 2023, Apollo-era storm 1972, each with what really happened |
 | Teach real engineering trade-offs | Debrief links each mechanic to a real NASA figure; Commander mode shows the numbers |
 | Interactive and engaging for students | Animated planets, event cards, sounds, stars, ranks, mission patches, companion wardrobe |
@@ -77,8 +77,9 @@ The code and design were produced with help from Claude (Anthropic) and reviewed
 - [ ] Add your own NASA API key (`EXPO_PUBLIC_NASA_KEY`) so the demo key limit does not hit during judging.
 
 ## Honest limitations
+Translations cover the main game screens only, are machine-assisted, and Arabic and Urdu are not included yet because they need right-to-left layout.
 On the Moon a careful crew can rescue most launch designs (the design still moves the score by about 27 points); the design decides success or failure mainly on Mars and in the Opportunity replay.
-The DONKI call and field names were written from the public API documentation and tested only against sample data, so run it once with your key and check the home banner. Tamil and Hindi are machine-assisted and need a native speaker's review. Teacher mode has no student accounts by design; results travel as pasted text.
+The DONKI call and field names were written from the public API documentation and tested only against sample data, so run it once with your key and check the home banner. All translations except English are machine-assisted and need a native speaker's review. Teacher mode has no student accounts by design; results travel as pasted text.
 Not yet user-tested with students. Not run on devices before this kit. Simulation numbers are teaching approximations. Supabase sync and the AI function need your own accounts and keys.
 
 ## Roadmap

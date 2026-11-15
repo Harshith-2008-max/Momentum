@@ -10,7 +10,11 @@ import { AV, build, FACTS, G, MISSIONS, QUIZ, Task } from "./src/data";
 import { pull, push } from "./src/sync";
 import { aiTasks } from "./src/ai";
 import { empty, load, Prog, save, today } from "./src/store";
-import { ApodCard, Bounce, Btn, C, Card, Confetti, H, MissionCard, Mu, RankBar, Ring, Sky } from "./src/ui";
+import { ApodCard, Bounce, Btn, C, Card, Confetti, H, Hud, MissionCard, Mu, RankBar, Ring, Sky } from "./src/ui";
+import { Profile } from "./src/Profile";
+import { LangPicker } from "./src/LangPicker";
+import { Glossary } from "./src/Glossary";
+import { levelInfo } from "./src/profile";
 import { Apod, getApod } from "./src/apod";
 import { Lander } from "./src/Lander";
 import { Outpost } from "./src/Outpost";
@@ -19,7 +23,7 @@ import { BADGES } from "./src/outpost";
 import { Hero, PK } from "./src/Planet";
 import { Videos } from "./src/Videos";
 
-type Scr = "home" | "plan" | "flow" | "done" | "stats" | "watch" | "welcome" | "settings" | "outpost";
+type Scr = "home" | "plan" | "flow" | "done" | "stats" | "watch" | "welcome" | "settings" | "outpost" | "profile" | "lang" | "glossary";
 const SCALE = [0.6, 1, 1.3];
 const WEEKDAY_CELLS = 35;
 
@@ -139,32 +143,44 @@ export default function App() {
       <LinearGradient colors={["#14103a", C.bg, "#0a1a3a"]} style={{ flex: 1 }}>
         <StatusBar style="light" /><Sky key={fx.hq ? "sky-h" : "sky-l"} />
         <SafeAreaView key={fx.hq ? "ui-h" : "ui-l"} style={{ flex: 1 }}>
-          <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 16 }}>
-            <Text style={{ color: C.fg, fontWeight: "700", fontSize: 16 }}>{AV[prog.av || 0][0]} ⭐ {prog.stars}</Text>
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 16, paddingTop: 6 }}>
+            <Hud avatar={AV[prog.av || 0][0]} stars={prog.stars} level={levelInfo(prog).level} onPress={() => { setCount(0); if (run) pause(); setScr("profile"); }} />
           </View>
           <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }} keyboardShouldPersistTaps="handled">
             {scr === "welcome" && (
               <View style={{ alignItems: "center" }}>
                 <Hero /><H>Welcome, astronaut!</H><Mu>What should Cosmo call you?</Mu>
+                <Btn t={"🌐 " + (LANGS.find((l) => l[0] === fx.lang)?.[1] ?? "English") + "  (18 languages)"} onPress={() => setScr("lang")} style={{ alignSelf: "stretch", marginTop: 8 }} />
                 <TextInput value={nm} onChangeText={setNm} maxLength={20} placeholder="Your name" placeholderTextColor={C.mu}
                   style={{ alignSelf: "stretch", color: C.fg, fontSize: 18, borderColor: C.bd, borderWidth: 1, borderRadius: 14, padding: 14, backgroundColor: C.card, marginVertical: 12 }} />
                 <Btn t="Blast off 🚀" pri style={{ alignSelf: "stretch" }} onPress={() => { fx.name = nm.trim() || "Astronaut"; saveFx(); setScr("home"); }} />
               </View>
             )}
 
+            {scr === "profile" && <Profile prog={prog} onGo={(s) => setScr(s as Scr)} onAvatar={buy} onName={(n) => { fx.name = n; saveFx(); bump((x) => x + 1); }}
+              update={(f) => { const p = f(latest.current.prog); latest.current.prog = p; setProg(p); save(p); push(p); }} />}
+            {scr === "lang" && <LangPicker onBack={() => setScr(fx.name ? "settings" : "welcome")} onPick={(l) => { fx.lang = l; cfg.lang = l; saveFx(); bump((x) => x + 1); }} />}
+            {scr === "glossary" && <Glossary onBack={() => setScr("home")} />}
+
             {scr === "settings" && (
               <>
                 <Mu>SETTINGS</Mu><H>Make it yours</H>
                 <Card>
-                  {([["sound", "🔊 Sound effects"], ["haptics", "📳 Haptic feedback"], ["hq", "✨ High graphics (turn off if slow)"]] as const).map(([k, l]) => (
+                  {([["sound", "🔊 Sound effects"], ["haptics", "📳 Haptic feedback"], ["hq", "✨ High graphics (turn off if slow)"], ["tips", "💡 Show Cosmo’s daily tip"], ["cb", "🎨 Color-blind friendly bars (adds shapes)"], ["safe", "🛡️ Kid-safe mode (no sharing or video search)"]] as const).map(([k, l]) => (
                     <View key={k} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 }}>
                       <Text style={{ color: C.fg, flex: 1 }}>{l}</Text>
                       <Switch value={fx[k]} onValueChange={(v) => { fx[k] = v; saveFx(); bump((n) => n + 1); }} />
                     </View>
                   ))}
                 </Card>
-                <Mu>Language (Outpost screens; Tamil and Hindi are machine-assisted, please help us improve them)</Mu>
-                <View style={{ flexDirection: "row", gap: 8, marginVertical: 8 }}>{LANGS.map(([l, n]) => <Btn key={l} pri={fx.lang === l} t={n} onPress={() => { fx.lang = l; cfg.lang = l; saveFx(); bump((x) => x + 1); }} />)}</View>
+                <Card>
+                  <Text style={{ color: C.fg, fontWeight: "700" }}>🔠 Text size</Text>
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>{([["Small", 0.9], ["Normal", 1], ["Large", 1.2]] as [string, number][]).map(([n, v]) => <Btn key={n} pri={fx.scale === v} t={n} onPress={() => { fx.scale = v; saveFx(); bump((x) => x + 1); }} />)}</View>
+                  <Text style={{ color: C.fg, fontWeight: "700", marginTop: 14 }}>🔉 Sound volume</Text>
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>{([["Low", 0.35], ["Medium", 0.7], ["High", 1]] as [string, number][]).map(([n, v]) => <Btn key={n} pri={fx.vol === v} t={n} onPress={() => { fx.vol = v; saveFx(); sfx("tick"); bump((x) => x + 1); }} />)}</View>
+                </Card>
+                <Btn t={"🌐 Language: " + (LANGS.find((l) => l[0] === fx.lang)?.[1] ?? "English") + " (search 18)"} onPress={() => setScr("lang")} style={{ marginVertical: 6 }} />
+                <Btn t="❓ Show the tutorial again" onPress={() => { const p = { ...latest.current.prog, tut: false }; latest.current.prog = p; setProg(p); save(p); }} style={{ marginBottom: 8 }} />
                 <Mu>Momentum can’t block other apps. For fewer distractions, use your phone’s Do Not Disturb or Focus mode.</Mu>
               </>
             )}
@@ -187,6 +203,7 @@ export default function App() {
                     <Text style={{ color: "rgba(255,255,255,0.85)" }}>Run a Moon or Mars outpost. Balance power, air, water, food and radiation shielding to keep your crew alive.</Text>
                   </LinearGradient>
                 </Pressable>
+                <Btn t="📖 Space glossary (search)" onPress={() => setScr("glossary")} style={{ marginVertical: 4 }} />
                 {apod && <ApodCard a={apod} />}
                 <TextInput value={goal} onChangeText={setGoal} onSubmitEditing={() => plan(goal)} maxLength={60}
                   placeholder="Land on Mars, or finish my essay" placeholderTextColor={C.mu}
@@ -251,7 +268,7 @@ export default function App() {
             {scr === "watch" && (
               <>
                 <Mu>WATCH & LEARN</Mu><H>Real NASA videos</H>
-                <Card><Videos q0="astronauts" editable /></Card>
+                <Card><Videos q0="astronauts" editable={!fx.safe} /></Card>
               </>
             )}
 
@@ -286,7 +303,7 @@ export default function App() {
           </ScrollView>
 
           <View style={{ flexDirection: "row", justifyContent: "center", gap: 8, padding: 10, margin: 10, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.08)", borderWidth: 1, borderColor: C.bd }}>
-            {([["home", "🏠 Home"], ["watch", "🎬 Watch"], ["stats", "🏅 Stats"], ["settings", "⚙️"]] as [Scr, string][]).map(([s, l]) => (
+            {([["home", "🏠 Home"], ["watch", "🎬 Watch"], ["profile", "👤 Profile"], ["settings", "⚙️"]] as [Scr, string][]).map(([s, l]) => (
               <Btn key={s} t={l} pri={scr === s} onPress={() => { setCount(0); if (run) pause(); setScr(s); }} />
             ))}
           </View>

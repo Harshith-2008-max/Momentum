@@ -10,15 +10,15 @@ import { fx } from "./fx";
 
 export const C = { bg: "#07070d", fg: "#eceaff", mu: "#9a98b8", v: "#8b7cff", b: "#5ea1ff", card: "rgba(255,255,255,0.07)", bd: "rgba(255,255,255,0.14)" };
 
-export const Btn = ({ t, onPress, pri, style }: { t: string; onPress: () => void; pri?: boolean; style?: ViewStyle }) => (
-  <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [{ transform: [{ scale: pressed ? 0.96 : 1 }], borderRadius: 18, overflow: "hidden" }, style]}>
+export const Btn = ({ t, onPress, pri, style, testID }: { t: string; onPress: () => void; pri?: boolean; style?: ViewStyle; testID?: string }) => (
+  <Pressable accessibilityRole="button" testID={testID} onPress={onPress} style={({ pressed }) => [{ transform: [{ scale: pressed ? 0.96 : 1 }], borderRadius: 18, overflow: "hidden" }, style]}>
     {pri ? (
       <LinearGradient colors={[C.v, C.b]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingVertical: 15, paddingHorizontal: 22, alignItems: "center", shadowColor: C.v, shadowOpacity: 0.6, shadowRadius: 16 }}>
-        <Text style={{ color: "#07070d", fontWeight: "800", fontSize: 16 }}>{t}</Text>
+        <Text style={{ color: "#07070d", fontWeight: "800", fontSize: Math.round(16 * fx.scale) }}>{t}</Text>
       </LinearGradient>
     ) : (
       <View style={{ paddingVertical: 14, paddingHorizontal: 20, alignItems: "center", backgroundColor: C.card, borderColor: C.bd, borderWidth: 1, borderRadius: 18 }}>
-        <Text style={{ color: C.fg, fontWeight: "600", fontSize: 16 }}>{t}</Text>
+        <Text style={{ color: C.fg, fontWeight: "600", fontSize: Math.round(16 * fx.scale) }}>{t}</Text>
       </View>
     )}
   </Pressable>
@@ -27,8 +27,8 @@ export const Btn = ({ t, onPress, pri, style }: { t: string; onPress: () => void
 export const Card = ({ children }: { children: React.ReactNode }) => (
   <View style={{ backgroundColor: C.card, borderColor: C.bd, borderWidth: 1, borderRadius: 24, padding: 18, marginVertical: 8, shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 20 }}>{children}</View>
 );
-export const H = ({ children }: { children: React.ReactNode }) => <Text style={{ color: C.fg, fontSize: 32, fontWeight: "800", marginVertical: 8, letterSpacing: -0.5 }}>{children}</Text>;
-export const Mu = ({ children }: { children: React.ReactNode }) => <Text style={{ color: C.mu, fontSize: 14, marginVertical: 2 }}>{children}</Text>;
+export const H = ({ children }: { children: React.ReactNode }) => <Text style={{ color: C.fg, fontSize: Math.round(32 * fx.scale), fontWeight: "800", marginVertical: 8, letterSpacing: -0.5 }}>{children}</Text>;
+export const Mu = ({ children }: { children: React.ReactNode }) => <Text style={{ color: C.mu, fontSize: Math.round(14 * fx.scale), marginVertical: 2 }}>{children}</Text>;
 
 const MC: Record<string, [string, string]> = { "Moon Landing": ["#5a5fb0", "#1c1f4a"], "Mars Expedition": ["#c2573a", "#4a1a14"], "Space Station Crew": ["#2f7fd0", "#10264d"] };
 export const MissionCard = ({ emoji, name, sub, onPress }: { emoji: string; name: string; sub: string; onPress: () => void }) => (
@@ -127,3 +127,25 @@ export const ApodCard = ({ a }: { a: Apod }) => {
     </Pressable>
   );
 };
+
+/** Top-right badge: avatar, stars and level on a vibrant gradient. Tap to open the profile. */
+export function Hud({ avatar, stars, level, onPress }: { avatar: string; stars: number; level: number; onPress: () => void }) {
+  const pulse = useRef(new Animated.Value(1)).current, prev = useRef(stars);
+  useEffect(() => {
+    if (stars === prev.current) return;
+    prev.current = stars;
+    Animated.sequence([Animated.spring(pulse, { toValue: 1.25, useNativeDriver: true }), Animated.spring(pulse, { toValue: 1, useNativeDriver: true })]).start();
+  }, [stars]);
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Open profile. Level ${level}, ${stars} stars`}>
+      <Animated.View style={{ transform: [{ scale: pulse }] }}>
+        <LinearGradient colors={["#ffd66b", "#ff8a3d", "#ff4fa3"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 5, paddingLeft: 6, paddingRight: 12, borderRadius: 999, shadowColor: "#ff8a3d", shadowOpacity: 0.7, shadowRadius: 12 }}>
+          <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: "rgba(7,7,13,0.55)", alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 18 }}>{avatar}</Text></View>
+          <Text style={{ color: "#07070d", fontWeight: "900" }}>⭐ {stars}</Text>
+          <View style={{ backgroundColor: "#07070d", borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 }}><Text style={{ color: "#ffd66b", fontWeight: "800", fontSize: 12 }}>Lv {level}</Text></View>
+        </LinearGradient>
+      </Animated.View>
+    </Pressable>
+  );
+}

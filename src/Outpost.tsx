@@ -4,6 +4,7 @@ import * as Haptics from "./haptics";
 import { fx, sfx } from "./fx";
 import { LearnCheck } from "./LearnCheck";
 import { Teacher } from "./Teacher";
+import { Feedback } from "./Feedback";
 import { RealStorm, latestFlare } from "./donki";
 import { aiCoach } from "./ai";
 import { t } from "./i18n";
@@ -12,14 +13,14 @@ import { Planet } from "./Planet";
 import { Videos } from "./Videos";
 import { Btn, C, Card, Confetti, H, Mu } from "./ui";
 import { Prog, today } from "./store";
-import { BADGES, BUDGET, COMMON_LEARN, DEFAULT_DESIGN, Design, PARTS, PART_MAX, SCENARIOS, designHint, designTip, DAYS, EventCard, LEARN, MODS, Mod, Orders, State, WORK, Work, World, advice, choose, dailyChallenge, coachText, earned, endDay, eventFor, newMission, nightDay, rating, score, shareGrid } from "./outpost";
+import { BADGES, BUDGET, COMMON_LEARN, DEFAULT_DESIGN, Design, PARTS, PART_MAX, SCENARIOS, deltaChips, designHint, designTip, hashSeed, DAYS, EventCard, LEARN, MODS, Mod, Orders, State, WORK, Work, World, advice, choose, dailyChallenge, coachText, earned, endDay, eventFor, newMission, nightDay, rating, score, shareGrid } from "./outpost";
 
 const BOOST_COST = 10;
 const TUT = ["Welcome! Keep 3 astronauts alive for 14 days. The bars show how your base is doing. Green is good, red is danger.",
   "Each day your crew can do 2 jobs. Jobs fix things or build things. Tap two jobs below.",
   "Lights and the lab use battery power. At night or in a dust storm, switch them off to save power.",
   "Tap End day, then read what happened. Every choice costs something. Cosmo gives a tip each day."];
-const tone = (v: number) => (v > 50 ? "#5ee2a0" : v > 25 ? "#ffd66b" : "#ff7a8a");
+const tone = (v: number) => (fx.cb ? (v > 50 ? "#4da3ff" : v > 25 ? "#ffb000" : "#ff5ea8") : v > 50 ? "#5ee2a0" : v > 25 ? "#ffd66b" : "#ff7a8a");
 const word = (v: number) => (v > 50 ? t("ok") : v > 25 ? t("low") : t("danger"));
 
 function Meter({ icon, name, v, cmd, extra }: { icon: string; name: string; v: number; cmd: boolean; extra?: string }) {
@@ -27,7 +28,7 @@ function Meter({ icon, name, v, cmd, extra }: { icon: string; name: string; v: n
     <View style={{ marginVertical: 5 }} accessible accessibilityLabel={`${name} ${Math.round(v)} percent, ${word(v)}`}>
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         <Text style={{ color: C.fg }}>{icon} {name}{extra ? <Text style={{ color: C.mu }}> {extra}</Text> : null}</Text>
-        <Text style={{ color: tone(v), fontWeight: "700" }}>{cmd ? `${Math.round(v)}% ` : ""}{word(v)}</Text>
+        <Text style={{ color: tone(v), fontWeight: "700" }}>{cmd ? `${Math.round(v)}% ` : ""}{fx.cb ? (v > 50 ? "● " : v > 25 ? "▲ " : "✖ ") : ""}{word(v)}</Text>
       </View>
       <View style={{ height: 9, borderRadius: 5, backgroundColor: "rgba(255,255,255,0.1)", overflow: "hidden", marginTop: 3 }}>
         <View style={{ width: `${Math.max(2, Math.round(v))}%`, height: 9, backgroundColor: tone(v) }} />
@@ -46,7 +47,7 @@ export function Outpost({ prog, update, onExit }: { prog: Prog; update: (f: (p: 
   const [daily, setDaily] = useState(false), [bonus, setBonus] = useState(0), [newB, setNewB] = useState<string[]>([]);
   const clone = (x: State): State => JSON.parse(JSON.stringify(x));
   const [real, setReal] = useState<RealStorm | null>(null), [crewOn, setCrewOn] = useState(false), [turn, setTurn] = useState(0), [picks, setPicks] = useState<(Work | null)[]>([null, null, null]);
-  const [code, setCode] = useState(""), [codeIn, setCodeIn] = useState(""), [codeErr, setCodeErr] = useState(""), [coachAi, setCoachAi] = useState(""), [learnForm, setLearnForm] = useState<"pre" | "post">("pre");
+  const [code, setCode] = useState(""), [codeIn, setCodeIn] = useState(""), [codeErr, setCodeErr] = useState(""), [coachAi, setCoachAi] = useState(""), [learnForm, setLearnForm] = useState<"pre" | "post">("pre"), [chips, setChips] = useState<{ icon: string; name: string; d: number }[]>([]), [moreSci, setMoreSci] = useState(false);
   const [pending, setPending] = useState<{ w: World; mods: Mod[]; isDaily: boolean; o: { crew?: boolean; code?: string; scn?: string } } | null>(null);
   const [design, setDesign] = useState<Design>(DEFAULT_DESIGN), [tut, setTut] = useState(-1);
   useEffect(() => { latestFlare().then(setReal); }, []);
@@ -57,7 +58,7 @@ export function Outpost({ prog, update, onExit }: { prog: Prog; update: (f: (p: 
     const { w, mods, isDaily, o } = pending;
     const useBoost = boost && stars >= BOOST_COST;
     if (useBoost) update((p) => ({ ...p, stars: p.stars - BOOST_COST }));
-    const n = newMission(w, useBoost ? "shield" : undefined, mods, { real: real ?? undefined, crew: o.crew ?? crewOn, scn: o.scn, design });
+    const n = newMission(w, useBoost ? "shield" : undefined, mods, { real: real ?? undefined, crew: o.crew ?? crewOn, scn: o.scn, design, seed: isDaily ? hashSeed(today()) : o.code ? hashSeed(o.code) : Math.floor(Math.random() * 1e9) });
     setCode(o.code ?? ""); setCoachAi(""); setTurn(0); setPicks([null, null, null]);
     awarded.current = false; rewound.current = false; snaps.current = [clone(n)]; setDaily(isDaily); setBonus(0); setNewB([]);
     setS(n); setEv(eventFor(n)); setWork([]); setLast(null); setLights(true); setLab(true); setPhase("play"); setTut(prog.tut ? -1 : 0);
@@ -77,14 +78,14 @@ export function Outpost({ prog, update, onExit }: { prog: Prog; update: (f: (p: 
   const next = () => {
     const o: Orders = { work: s.crew ? (picks.filter(Boolean) as Work[]) : work, lights, lab }, n = endDay(s, o);
     setTurn(0); setPicks([null, null, null]);
-    setLast(n.log[n.log.length - 1]); setS(n); setWork([]);
+    setLast(n.log[n.log.length - 1]); setChips(deltaChips(s, n)); setS(n); setWork([]);
     if (n.over) {
       setPhase("debrief"); setCoachAi(""); aiCoach(n).then((x) => x && setCoachAi(x));
       if (!awarded.current && !rewound.current) {
         awarded.current = true;
         const sc = score(n), won = n.over === "win", b = won ? 1 + Math.floor(Math.random() * 5) : 0, ids = earned(n);
         setBonus(b); setNewB(ids.filter((x) => !have.includes(x)));
-        update((p) => ({ ...p, missions: (p.missions || 0) + 1, stars: p.stars + Math.round(sc.total / 5) + b,
+        update((p) => ({ ...p, missions: (p.missions || 0) + 1, flight: [{ d: today(), label: n.scn ? SCENARIOS[n.scn].title : (daily ? "Daily · " : "") + (n.world === "moon" ? "Moon" : "Mars"), score: sc.total, won }, ...(p.flight || [])].slice(0, 20), stars: p.stars + Math.round(sc.total / 5) + b,
           best: { ...(p.best || {}), [n.scn ?? n.world]: Math.max((p.best || {})[n.scn ?? n.world] ?? 0, sc.total) },
           badges: Array.from(new Set([...(p.badges || []), ...ids])),
           daily: daily ? { ...(p.daily || {}), [today()]: Math.max((p.daily || {})[today()] ?? 0, sc.total) } : p.daily || {} }));
@@ -215,13 +216,14 @@ export function Outpost({ prog, update, onExit }: { prog: Prog; update: (f: (p: 
           {s.log.slice(-3).map((d, k) => <View key={k} style={{ marginBottom: 6 }}>{d.map((l, j) => <Mu key={j}>{l}</Mu>)}</View>)}
         </Card>
         <Card><Text style={{ color: C.v, fontWeight: "700" }}>{t("science")}</Text>
-          {[...LEARN[s.world], COMMON_LEARN].map((t, k) => <Text key={k} style={{ color: C.fg, marginTop: 8 }}>• {t}</Text>)}</Card>
+          {[...LEARN[s.world], COMMON_LEARN].slice(0, moreSci ? 9 : 2).map((t, k) => <Text key={k} style={{ color: C.fg, marginTop: 8 }}>• {t}</Text>)}<Btn t={moreSci ? "Show less" : "Show more facts"} onPress={() => setMoreSci(!moreSci)} style={{ marginTop: 8 }} /></Card>
         <Card><Text style={{ color: C.fg, fontWeight: "700", marginBottom: 6 }}>🎬 Real NASA videos</Text><Videos q0={s.scn ? SCENARIOS[s.scn].video : s.world === "moon" ? "moon base habitat" : "mars habitat"} /></Card>
         <Card><Text style={{ color: C.fg, fontWeight: "700", marginBottom: 6 }}>⏪ What if? Rewind and choose differently</Text>
           {snaps.current.map((sn, k) => { const c = eventFor(sn); return c ? <Btn key={k} t={`Day ${k + 1}: ${c.icon} ${c.title}`} style={{ marginVertical: 3 }} onPress={() => rewind(k + 1)} /> : null; })}
           <Mu>Replays do not earn stars or badges, but they are the best way to learn what really mattered.</Mu></Card>
+        <Feedback compact onSave={(f) => update((p) => ({ ...p, feedback: [{ d: today(), ...f }, ...(p.feedback || [])].slice(0, 20) }))} />
         <Btn pri t="Play again" onPress={() => setPhase("pick")} />
-        <Btn t="Share my result" style={{ marginTop: 8 }} onPress={() => Share.share({ message: `Outpost Command ${s.scn ? SCENARIOS[s.scn].title + " (" + SCENARIOS[s.scn].year + ") " : daily ? "Daily " + today() + " " : ""}· ${s.world === "moon" ? "🌕 Moon" : "🔴 Mars"} · ${sc.total}/100 ${"★".repeat(rating(sc.total))}\n${shareGrid(s)}\n🚀 Can you beat it?` })} />
+        {!fx.safe && <Btn t="Share my result" style={{ marginTop: 8 }} onPress={() => Share.share({ message: `Outpost Command ${s.scn ? SCENARIOS[s.scn].title + " (" + SCENARIOS[s.scn].year + ") " : daily ? "Daily " + today() + " " : ""}· ${s.world === "moon" ? "🌕 Moon" : "🔴 Mars"} · ${sc.total}/100 ${"★".repeat(rating(sc.total))}\n${shareGrid(s)}\n🚀 Can you beat it?` })} />}
         {code !== "" && <Btn t="📤 Send my result to my teacher" style={{ marginTop: 8 }} onPress={() => Share.share({ message: resultLine({ code, name: fx.name, score: sc.total, won, why: s.why, pre: learn.pre, post: learn.post }) })} />}
         <Btn t="Home" style={{ marginTop: 8 }} onPress={onExit} />
       </>
@@ -241,16 +243,16 @@ export function Outpost({ prog, update, onExit }: { prog: Prog; update: (f: (p: 
       {s.scn && s.day === 1 && !ev && <Card><Text style={{ color: C.fg, fontWeight: "800" }}>{SCENARIOS[s.scn].icon} {SCENARIOS[s.scn].title}</Text><Mu>{SCENARIOS[s.scn].brief}</Mu></Card>}
       {tut >= 0 && tut < TUT.length && !ev && <Card><Text style={{ color: C.v, fontWeight: "800", fontSize: 12 }}>HOW TO PLAY · {tut + 1} OF {TUT.length}</Text><Text style={{ color: C.fg, fontSize: 17, marginTop: 4 }}>{TUT[tut]}</Text>
         <Btn pri t={tut + 1 < TUT.length ? "Next" : "Got it!"} style={{ marginTop: 8 }} onPress={() => { if (tut + 1 >= TUT.length) update((p) => ({ ...p, tut: true })); setTut(tut + 1); }} /></Card>}
-      {!ev && !cmd && !(tut >= 0 && tut < TUT.length) && <Card><Text style={{ color: C.fg }}>🧑‍🚀 {t("cosmo")}: {advice(s)}</Text></Card>}
+      {!ev && !cmd && fx.tips && !(tut >= 0 && tut < TUT.length) && <Card><Text style={{ color: C.fg }}>🧑‍🚀 {t("cosmo")}: {advice(s)}</Text></Card>}
       {ev && (
         <Card>
           <Text style={{ fontSize: 40 }}>{ev.icon}</Text>
           <Text style={{ color: C.fg, fontSize: 20, fontWeight: "800" }}>{ev.title}</Text>
           <Mu>{ev.text}</Mu>
-          {ev.choices.map((c, i) => <Btn key={i} t={`${c.label}: ${c.note}`} onPress={() => pick(i)} style={{ marginTop: 8 }} />)}
+          {ev.choices.map((c, i) => <Btn key={i} testID="event-choice" t={`${c.label}: ${c.note}`} onPress={() => pick(i)} style={{ marginTop: 8 }} />)}
         </Card>
       )}
-      {last && !ev && <Card><Text style={{ color: C.fg, fontWeight: "700", marginBottom: 4 }}>What happened yesterday</Text>{last.map((l, k) => <Mu key={k}>{l}</Mu>)}</Card>}
+      {last && !ev && <Card><Text style={{ color: C.fg, fontWeight: "700", marginBottom: 4 }}>What happened yesterday</Text>{chips.length > 0 && <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>{chips.map((c, k) => <View key={k} style={{ backgroundColor: c.d > 0 ? "rgba(94,226,160,0.2)" : "rgba(255,122,138,0.2)", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: c.d > 0 ? "#5ee2a0" : "#ff9aa6", fontWeight: "700" }}>{c.icon} {c.name} {c.d > 0 ? "▲" : "▼"} {Math.abs(c.d)}</Text></View>)}</View>}{last.map((l, k) => <Mu key={k}>{l}</Mu>)}</Card>}
       <Card>
         <Text style={{ fontSize: 24, marginBottom: 4 }} accessibilityLabel="Crew">{s.health > 60 ? "👩‍🚀🧑‍🚀👨‍🚀" : s.health > 30 ? "🤕🧑‍🚀👨‍🚀" : "🤒🤕🧑‍🚀"}</Text>
         <Meter icon="❤️" name={t("m.health")} v={s.health} cmd={cmd} />

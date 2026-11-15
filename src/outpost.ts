@@ -13,7 +13,7 @@ export type State = {
   blackouts: number; storms: number; stormHit: number; hist: number[]; mods: Mod[];
   real?: { date: string; cls: string }; stormK: number; crew: boolean;
   scn?: string; night: [number, number]; nightHeat: number; stormName?: string; dmg: Record<string, number>;
-  cap: number; genK: number; farmK: number; lsDecay: number; design: Design; shieldCap: number; lsCap: number;
+  cap: number; genK: number; farmK: number; lsDecay: number; design: Design; shieldCap: number; lsCap: number; seed?: number; extra: Record<number, number>;
 };
 export type Choice = { label: string; note: string; apply: (s: State) => void };
 export type EventCard = { icon: string; title: string; text: string; choices: Choice[] };
@@ -34,14 +34,15 @@ export const stormScale = (cls?: string) => (!cls ? 1 : cls.startsWith("X") ? 1.
 export const BUDGET = 10, PART_MAX = 4;
 export const DEFAULT_DESIGN: Design = { panels: 2, battery: 2, shield: 2, farm: 2, spares: 2 };
 export const validDesign = (d: Design) => (Object.values(d) as number[]).every((n) => Number.isInteger(n) && n >= 0 && n <= PART_MAX) && (Object.values(d) as number[]).reduce((a, b) => a + b, 0) <= BUDGET;
-export function newMission(world: World, boost?: "shield", mods: Mod[] = [], opts: { real?: { date: string; cls: string }; crew?: boolean; scn?: string; design?: Design } = {}): State {
+export function newMission(world: World, boost?: "shield", mods: Mod[] = [], opts: { real?: { date: string; cls: string }; crew?: boolean; scn?: string; design?: Design; seed?: number } = {}): State {
   const sc = opts.scn ? SCENARIOS[opts.scn] : undefined, d = opts.design && validDesign(opts.design) ? opts.design : DEFAULT_DESIGN;
   const cap = 60 + 20 * d.battery;
   const s: State = { world: sc ? sc.world : world, day: 1, power: mods.includes("lean") ? cap * 0.6 : cap, air: 100, water: 100, food: 100, shield: 5 + 7.5 * d.shield, solar: 100, ls: 100, health: 100, dose: 0,
     unshielded: 0, sci: 0, stormToday: false, sheltered: false, dust: sc?.dustDays ?? 0, forceOff: 0, slots: opts.crew ? 3 : 2, log: [], over: null, why: "",
     blackouts: 0, storms: 0, stormHit: 0, hist: [], mods, real: sc ? undefined : opts.real, stormK: sc?.stormK ?? stormScale(opts.real?.cls), crew: !!opts.crew,
     dmg: {}, scn: opts.scn, night: sc?.night ?? [10, 12], nightHeat: sc?.nightHeat ?? 15, stormName: sc?.stormName,
-    cap, genK: 0.5 + 0.25 * d.panels, farmK: 0.5 + 0.25 * d.farm, lsDecay: 6 - d.spares, design: d, shieldCap: 40 + 15 * d.shield, lsCap: 70 + 15 * d.spares };
+    cap, genK: 0.5 + 0.25 * d.panels, farmK: 0.5 + 0.25 * d.farm, lsDecay: 6 - d.spares, design: d, shieldCap: 40 + 15 * d.shield, lsCap: 70 + 15 * d.spares, seed: opts.seed, extra: {} };
+  if (!sc && opts.seed !== undefined) s.extra = pickExtras(s.world, opts.seed, s.world === "moon" ? [3, 5, 8, s.night[0] - 1, 12, 11] : [3, 4, 7, 9, 11, 13]);
   if (boost === "shield") s.shield += 15;
   return s;
 }
@@ -75,6 +76,7 @@ export function eventFor(s: State): EventCard | null {
   if (s.scn === "opportunity") return d === 3 ? cargo : d === 9 ? leak : d === 11 ? sick : null;
   if (s.scn === "apollo72") return d === 3 ? cargo : d === 6 || d === 8 ? stormCard(s) : d === 11 ? sick : null;
   if (s.scn === "chandrayaan") return d === 3 ? cargo : d === s.night[0] - 1 ? night : d === 12 ? sick : null;
+  if (s.extra && s.extra[d] !== undefined) return EXTRAS[s.extra[d]].card;
   if (s.world === "moon") return d === 3 ? cargo : d === 5 ? stormCard(s) : d === 8 ? leak : d === s.night[0] - 1 ? night : d === 12 ? sick : d === 11 && s.mods.includes("stormy") ? stormCard(s) : null;
   return d === 3 ? cargo : d === 4 ? dust : d === 7 ? stormCard(s) : d === 9 ? leak : d === 11 ? sick : d === 13 && s.mods.includes("stormy") ? stormCard(s) : null;
 }
@@ -263,4 +265,37 @@ export function designTip(s: State): string {
   if (/food/.test(top)) return mk("farm", "A bigger greenhouse feeds the crew, but it needs power for grow lights.");
   if (/air|water/.test(top)) return mk("spares", "More spare parts slow the wear on life support.");
   return "Your launch mix worked. Try shifting weight to see how another mix changes the mission.";
+}
+
+// ---- Extra events: drawn at random for each mission (seeded, so a daily challenge is identical for everyone) ----
+const ev = (icon: string, title: string, text: string, a: [string, string, (s: State) => void], b: [string, string, (s: State) => void]): EventCard =>
+  ({ icon, title, text, choices: [{ label: a[0], note: a[1], apply: a[2] }, { label: b[0], note: b[1], apply: b[2] }] });
+export const EXTRAS: { worlds?: World[]; card: EventCard }[] = [
+  { card: ev("🍄", "Mold in the greenhouse", "Some plants are getting sick.", ["Throw out the sick plants", "Food −12", (s) => { s.food = clamp(s.food - 12); }], ["Spend the day cleaning", "Only 1 work slot today, food −3", (s) => { s.slots = 1; s.food = clamp(s.food - 3); }]) },
+  { card: ev("🧊", "Water ice found nearby!", "Your rover spotted ice. Real missions search for water ice to drink and to make fuel.", ["Send the rover", "Battery −10, water +15", (s) => { s.power = Math.max(0, s.power - 10); s.water = clamp(s.water + 15); }], ["Just map it", "+1 science point", (s) => { s.sci += 1; }]) },
+  { card: ev("🔩", "A solar panel is stuck", "One panel will not turn toward the Sun.", ["Fix it now", "Only 1 work slot today, panels +10", (s) => { s.slots = 1; s.solar = clamp(s.solar + 10); }], ["Leave it", "Panels −10", (s) => { s.solar = clamp(s.solar - 10); }]) },
+  { card: ev("💻", "Software glitch", "The life-support computer is acting strangely.", ["Reboot it", "Battery −5, life support +5", (s) => { s.power = Math.max(0, s.power - 5); s.ls = clamp(s.ls + 5); }], ["Wait it out", "Life support −8", (s) => { s.ls = clamp(s.ls - 8); }]) },
+  { card: ev("☄️", "Meteor shower warning", "Tiny space rocks may hit the outpost.", ["Stay inside", "Only 1 work slot today, shielding +5", (s) => { s.slots = 1; s.shield = clamp(s.shield + 5); }], ["Keep working", "Crew health −6 unless shielding is 60 or more", (s) => { if (s.shield < 60) s.health = clamp(s.health - 6); }]) },
+  { card: ev("🎂", "A crew birthday!", "Everyone would love a small celebration.", ["Throw a party", "Food −5, crew health +6", (s) => { s.food = clamp(s.food - 5); s.health = clamp(s.health + 6); }], ["Skip it", "Crew health −2", (s) => { s.health = clamp(s.health - 2); }]) },
+  { card: ev("📡", "Comms with Earth are down", "Mission Control cannot hear you.", ["Run diagnostics", "Only 1 work slot today, +1 science point", (s) => { s.slots = 1; s.sci += 1; }], ["Ignore it", "Crew health −3", (s) => { s.health = clamp(s.health - 3); }]) },
+  { worlds: ["mars"], card: ev("🌪️", "A dust devil sweeps your panels!", "Real dust devils on Mars have cleaned rover solar panels for free.", ["What luck!", "Panels +20", (s) => { s.solar = clamp(s.solar + 20); }], ["Watch it spin", "Panels +20, +1 science point", (s) => { s.solar = clamp(s.solar + 20); s.sci += 1; }]) },
+  { worlds: ["moon"], card: ev("🧹", "Moon dust in the airlock", "Sharp lunar dust sticks to everything and can damage seals, as Apollo crews found.", ["Clean it all", "Only 1 work slot today, life support +8", (s) => { s.slots = 1; s.ls = clamp(s.ls + 8); }], ["Ignore it", "Life support −8", (s) => { s.ls = clamp(s.ls - 8); }]) },
+  { worlds: ["mars"], card: ev("🧂", "Salty chemicals in the soil", "Martian soil has perchlorate salts that are harmful to plants and people.", ["Wash the soil first", "Water −8, food +10", (s) => { s.water = clamp(s.water - 8); s.food = clamp(s.food + 10); }], ["Plant anyway", "Food −6", (s) => { s.food = clamp(s.food - 6); }]) },
+  { worlds: ["moon"], card: ev("🌅", "A peak of near-constant sunlight", "Some peaks near the Moon’s south pole get sunlight almost all the time.", ["Move a panel there", "Only 1 work slot today, panels +20", (s) => { s.slots = 1; s.solar = clamp(s.solar + 20); }], ["Stay put", "No change", () => {}]) },
+];
+function pickExtras(world: World, seed: number, taken: number[]): Record<number, number> {
+  let x = (seed >>> 0) || 1; const rnd = () => (x = (Math.imul(x, 1664525) + 1013904223) >>> 0) / 4294967296;
+  const days = [2, 4, 6, 10, 13, 14].filter((d) => !taken.includes(d));
+  const pool = EXTRAS.map((v, i) => ({ v, i })).filter((p) => !p.v.worlds || p.v.worlds.includes(world)).map((p) => p.i);
+  const out: Record<number, number> = {};
+  for (let k = 0; k < 3 && days.length && pool.length; k++) { const di = Math.floor(rnd() * days.length), pi = Math.floor(rnd() * pool.length); out[days[di]] = pool[pi]; days.splice(di, 1); pool.splice(pi, 1); }
+  return out;
+}
+export const hashSeed = (txt: string) => [...txt].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+
+// ---- Instant feedback: what changed overnight ----
+export function deltaChips(a: State, b: State): { icon: string; name: string; d: number }[] {
+  const f = (s: State) => ({ health: s.health, power: (s.power / s.cap) * 100, air: s.air, water: s.water, food: s.food, shield: s.shield, solar: s.solar, ls: s.ls });
+  const A = f(a), B = f(b), meta = { health: ["❤️", "Crew health"], power: ["⚡", "Battery"], air: ["💨", "Air"], water: ["💧", "Water"], food: ["🍎", "Food"], shield: ["🛡️", "Shield"], solar: ["☀️", "Panels"], ls: ["🔧", "Life support"] } as const;
+  return (Object.keys(meta) as (keyof typeof A)[]).map((k) => ({ icon: meta[k][0], name: meta[k][1], d: Math.round(B[k] - A[k]) })).filter((x) => Math.abs(x.d) >= 3);
 }

@@ -26,7 +26,11 @@ Design and run a Moon or Mars outpost. Split a rocket's launch weight between so
 - **Live NASA data:** the in-game solar storm is the strongest real flare of the last 30 days from NASA's DONKI database (falls back to a training storm offline). Debriefs show real NASA videos.
 - **Measured learning:** a 5-question check before and 5 different questions after, with the gain shown.
 - **Classroom ready:** crew mode (3 players, 1 phone), teacher class codes, and a results dashboard with no student accounts and no server.
-- **Local relevance:** English, Tamil and Hindi on the Outpost screens, and an ISRO story alongside NASA's.
+- **Local relevance:** 18 languages on the Outpost screens, with a searchable language screen (English, Tamil, Hindi, Spanish, French, Portuguese, Telugu, Kannada, Malayalam, Bengali, Marathi, Gujarati, Chinese, Japanese, Korean, German, Russian, Indonesian), and an ISRO story alongside NASA's.
+- **Profile and rewards:** level and XP, stats, badges, a flight log, a wardrobe for the Cosmo companion, and a vibrant top-right badge that opens the profile.
+- **Instant feedback:** after every day, colored chips show what changed (for example Battery ▼ 30). The learning check explains each answer in one line, and a feedback form collects ratings and comments.
+- **More events:** 11 extra event cards (mold, water ice, dust devil, moon dust, meteor shower, a birthday and more), drawn at random, three per mission, on top of the core events.
+- **Space glossary** with search, and extra settings: text size, sound volume, color-blind friendly bars, kid-safe mode, and a switch for Cosmo's tips.
 - A focus-timer called *Momentum* (micro-tasks, stars, a companion) sits around the game as bonus training.
 
 ## Run it
@@ -63,7 +67,7 @@ The code and design were created with help from Claude (Anthropic) and reviewed 
 
 ## Honest limitations
 - Game numbers are simplified teaching approximations (meters are 0 to 100; the lunar night is shortened to 4 days in one replay).
-- Not yet user-tested with students. Tamil and Hindi are machine-assisted and need a native speaker's review.
+- Not yet user-tested with students. All non-English translations are machine-assisted and need a native speaker's review. They cover the main game screens; event cards and tips are English only. Arabic and Urdu are not included yet because they need right-to-left layout.
 - The NASA DONKI call was verified against sample data and the public documentation; confirm it with your own key.
 - Tested in an automated environment; test on real phones before relying on it.
 

@@ -54,7 +54,7 @@ test("outpost: pick world -> event -> orders -> end day -> debrief after 14 days
   r.getByText(/Air & water/);
   for (let d = 0; d < 14; d++) {
     // resolve an event card if one is showing
-    const ev = r.queryAllByText(/: /).find((n: any) => /\+\d+ food|Almost no storm|Patch it now|Medicine|plan ahead|Food crate/.test(String(n.props.children)));
+    const ev = r.queryAllByTestId("event-choice")[0];
     if (ev) await fireEvent.press(ev);
     await fireEvent.press(r.getByText("🔬 Run science"));
     await fireEvent.press(r.getByText("End day ▶"));
@@ -82,7 +82,7 @@ test("new features: learning check, class code join, crew mode, teacher mode", a
   await fireEvent.press(r.getByText("Start the before-check"));
   for (let q = 0; q < 5; q++) {
     await waitFor(() => r.getByText(new RegExp(`QUESTION ${q + 1} OF 5`)));
-    await fireEvent.press(r.getAllByRole("button")[0]);
+    await fireEvent.press(r.getAllByTestId("learn-option")[0]);
     await fireEvent.press(await waitFor(() => r.getByText(q < 4 ? "Next question" : "See my score")));
   }
   await fireEvent.press(await waitFor(() => r.getByText("Save and continue")));
@@ -126,11 +126,63 @@ test("mission history: play the Opportunity scenario to the end and see what rea
   await waitFor(() => r.getByText(/Day 1\/14/));
   r.getByText(/A planet-wide dust storm is blocking the Sun for 6 days/);
   for (let d = 0; d < 14 && !r.queryByText(/MISSION DEBRIEF/); d++) {
-    const ev = r.queryAllByText(/: /).find((n: any) => /\+\d+ food|Patch it now|Medicine/.test(String(n.props.children)));
+    const ev = r.queryAllByTestId("event-choice")[0];
     if (ev) await fireEvent.press(ev);
     await fireEvent.press(r.getByText("End day ▶"));
   }
   await waitFor(() => r.getByText(/MISSION DEBRIEF/));
   r.getByText(/WHAT REALLY HAPPENED · NASA\/JPL/);
   r.getByText(/June 10, 2018/);
+});
+
+
+test("profile, 18-language search, glossary, feedback, new settings and instant feedback", async () => {
+  jest.useFakeTimers();
+  const r = await render(<App />);
+  await waitFor(() => r.getByText(/Welcome|Hi /));
+  if (r.queryByText("Welcome, astronaut!")) { await fireEvent.changeText(r.getByPlaceholderText("Your name"), "Ava"); await fireEvent.press(r.getByText("Blast off 🚀")); }
+  await waitFor(() => r.getByText(/Hi /));
+  // the language picker is its own screen with a search bar
+  await fireEvent.press(r.getByText("⚙️"));
+  await fireEvent.press(await waitFor(() => r.getByText(/search 18/)));
+  await waitFor(() => r.getByText(/Choose your language/));
+  r.getByText(/18 of 18 languages/);
+  await fireEvent.changeText(r.getByLabelText("Search languages"), "zzz");
+  await waitFor(() => r.getByText(/No language found/));
+  await fireEvent.changeText(r.getByLabelText("Search languages"), "espanol");
+  await waitFor(() => r.getByText(/1 of 18 languages/));
+  await fireEvent.press(r.getByText("Español"));
+  await fireEvent.press(r.getByText("Done"));
+  // vibrant top-right badge opens the profile
+  await fireEvent.press(r.getByLabelText(/Open profile\. Level \d+/));
+  await waitFor(() => r.getByText("MY PROFILE"));
+  r.getByText(/Level \d+ ·/); r.getByText(/Flight log/);
+  await fireEvent.press(r.getAllByText("☆")[3]);
+  await fireEvent.press(r.getByText("Fun"));
+  await fireEvent.press(r.getByText("Send feedback"));
+  await waitFor(() => r.getByText(/Thank you! Your feedback/));
+  // glossary search
+  await fireEvent.press(r.getByText(/Glossary/));
+  await waitFor(() => r.getByText(/What does it mean\?/));
+  await fireEvent.changeText(r.getByLabelText("Search the glossary"), "regolith");
+  await waitFor(() => r.getByText(/Loose dust and broken rock/));
+  await fireEvent.press(r.getByText("Back"));
+  // extra settings
+  await fireEvent.press(r.getByText("⚙️"));
+  await waitFor(() => r.getByText(/Text size/));
+  r.getByText(/Color-blind friendly bars/); r.getByText(/Kid-safe mode/); r.getByText(/Sound volume/); r.getByText(/Show Cosmo’s daily tip/);
+  await fireEvent.press(r.getByText("Large"));
+  await fireEvent.press(r.getByText("Medium"));
+  // a mission shows instant feedback chips after a day, and the chosen language is applied
+  await fireEvent.press(r.getByText("🏠 Home"));
+  await fireEvent.press(await waitFor(() => r.getByText(/🛰️ Outpost Command/)));
+  await waitFor(() => r.getByText(/Dirige un puesto espacial/));
+  await fireEvent.press(r.getByText("Moon base (south pole)"));
+  await fireEvent.press(await waitFor(() => r.getByText(/¡Lanzar!/)));
+  await waitFor(() => r.getByText(/Día 1\/14/));
+  r.getByText(/Salud de la tripulación/);
+  await fireEvent.press(r.getByText("Terminar el día ▶"));
+  const ev2 = r.queryAllByTestId("event-choice")[0]; if (ev2) await fireEvent.press(ev2); // a random event card may arrive on day 2
+  await waitFor(() => r.getByText(/What happened yesterday/));
+  expect(r.getAllByText(/▼|▲/).length).toBeGreaterThan(0);
 });

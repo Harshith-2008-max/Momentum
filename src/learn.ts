@@ -1,16 +1,16 @@
 // 5-question learning check with parallel forms: form A (before) and form B (after) test the same ideas with different questions.
 export type Q = { q: string; opts: [string, string, string] }; // opts[0] is the right answer; shown rotated
-export const PAIRS: { a: Q; b: Q }[] = [
+export const PAIRS: { a: Q; b: Q; why: string }[] = [
   { a: { q: "What is a good way to protect a Moon base from radiation?", opts: ["Cover it with soil (regolith)", "Paint it white", "Open the windows"] },
-    b: { q: "Why do designers want to bury habitats on the Moon?", opts: ["Soil blocks radiation", "To hide them from view", "To make them look nicer"] } },
+    b: { q: "Why do designers want to bury habitats on the Moon?", opts: ["Soil blocks radiation", "To hide them from view", "To make them look nicer"] }, why: "Soil (regolith) on a roof absorbs radiation. Real designs bury habitats for this reason." },
   { a: { q: "About how long is one lunar night?", opts: ["About 14 Earth days", "About 1 Earth day", "About 6 hours"] },
-    b: { q: "A full lunar day plus night lasts about…", opts: ["29.5 Earth days", "24 hours", "7 days"] } },
+    b: { q: "A full lunar day plus night lasts about…", opts: ["29.5 Earth days", "24 hours", "7 days"] }, why: "A lunar day and a lunar night each last about 14 Earth days, so a full cycle is about 29.5 days." },
   { a: { q: "How much sunlight does Mars get compared with Earth?", opts: ["About 43%", "About 100%", "About 200%"] },
-    b: { q: "Solar panels on Mars make … than on Earth.", opts: ["Less power", "More power", "The same power"] } },
+    b: { q: "Solar panels on Mars make … than on Earth.", opts: ["Less power", "More power", "The same power"] }, why: "Mars is farther from the Sun, so it gets about 43% of Earth’s sunlight and panels make less power." },
   { a: { q: "About how much water does the ISS recycle?", opts: ["About 98%", "About 10%", "None"] },
-    b: { q: "Why do space stations recycle water?", opts: ["Carrying water from Earth costs a lot", "Water is free in space", "It tastes better"] } },
+    b: { q: "Why do space stations recycle water?", opts: ["Carrying water from Earth costs a lot", "Water is free in space", "It tastes better"] }, why: "Carrying water from Earth costs a lot, so the ISS recycles about 98% of its water." },
   { a: { q: "Where is there more radiation each day: Earth’s surface or the Moon’s surface?", opts: ["The Moon’s surface", "Earth’s surface", "They are the same"] },
-    b: { q: "The Moon’s surface radiation is roughly … Earth’s.", opts: ["Hundreds of times more", "About the same", "Much less"] } },
+    b: { q: "The Moon’s surface radiation is roughly … Earth’s.", opts: ["Hundreds of times more", "About the same", "Much less"] }, why: "Earth’s air and magnetic field protect us. The Moon has neither, so its surface gets hundreds of times more radiation." },
 ];
 export function present(form: "pre" | "post", i: number) {
   const q = PAIRS[i][form === "pre" ? "a" : "b"], rot = (i * 2 + (form === "pre" ? 0 : 1)) % 3;

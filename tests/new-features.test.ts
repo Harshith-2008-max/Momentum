@@ -2,7 +2,6 @@ import { DAYS, choose, coachText, endDay, eventFor, newMission, score, stormScal
 import { makeCode, parseCode, parseResults, resultLine } from "../src/teacher";
 import { PAIRS, present } from "../src/learn";
 import { pickFlare } from "../src/donki";
-import { cfg, keys, t } from "../src/i18n";
 const ok = (c: boolean, m: string) => { console.log((c ? "PASS " : "FAIL ") + m); if (!c) process.exitCode = 1; };
 
 // 1. Real solar flare data
@@ -38,10 +37,7 @@ ok(!resultLine({ code, name: "A|B\nC", score: 1, won: true, why: "x" }).includes
 for (let i = 0; i < PAIRS.length; i++) for (const f of ["pre", "post"] as const) { const q = present(f, i); ok(q.opts.length === 3 && new Set(q.opts).size === 3 && q.opts[q.correct] === PAIRS[i][f === "pre" ? "a" : "b"].opts[0], `learning Q${i + 1} ${f}: options valid, correct answer tracked`); }
 ok(new Set(PAIRS.map((_, i) => present("pre", i).correct)).size > 1, "correct answer is not always in the same position");
 
-// 5. Languages
-cfg.lang = "en"; const en = t("endday"); cfg.lang = "ta"; const ta = t("endday"); cfg.lang = "hi"; const hi = t("endday"); cfg.lang = "en";
-ok(en !== ta && ta !== hi && /[\u0B80-\u0BFF]/.test(ta) && /[\u0900-\u097F]/.test(hi), "Tamil and Hindi are present and use the right scripts");
-ok(keys().every((k) => { const row = (["en", "ta", "hi"] as const).map((l) => { cfg.lang = l; return t(k); }); cfg.lang = "en"; return row.every((v) => v && v !== k); }), `all ${keys().length} UI strings exist in 3 languages`);
+// 5. Languages: covered in tests/engagement.test.ts (18 languages, search, scripts)
 
 // 6. Coach
 let lose = newMission("moon"); lose.day = 10; lose.power = 3; let n = lose; while (!n.over) { const ev = eventFor(n); if (ev) n = choose(n, ev, 1); n = endDay(n, { work: [], lights: true, lab: true }); }

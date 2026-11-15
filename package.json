@@ -40,7 +40,7 @@
     "web": "expo start --web",
     "web:build": "expo export --platform web --output-dir dist",
     "typecheck": "tsc --noEmit",
-    "test:logic": "tsx tests/outpost.test.ts && tsx tests/new-features.test.ts && tsx tests/ai-validation.test.ts && tsx tests/features.test.ts && tsx tests/logic.test.ts",
+    "test:logic": "tsx tests/outpost.test.ts && tsx tests/new-features.test.ts && tsx tests/engagement.test.ts && tsx tests/ai-validation.test.ts && tsx tests/features.test.ts && tsx tests/logic.test.ts",
     "test": "jest"
   },
   "private": true,
