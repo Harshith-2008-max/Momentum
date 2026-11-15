@@ -17,7 +17,7 @@ A game where students design and run a Moon or Mars outpost. You split a rocket'
 - Live NASA solar-flare data and NASA videos
 - "What if?" rewind, daily challenge, badges
 - Classroom tools: crew mode, class codes, teacher dashboard, before-and-after quiz
-- English, Tamil and Hindi
+- 18 languages with a searchable language screen
 
 ## Run it
 ```bash
